@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER-TRIP // TERMINAL IA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="crt-overlay"></div>
+  
+  <div class="terminal-container">
+    <header class="terminal-header">
+      <div><span class="status-dot"></span> SYSTEM ACTIVE // TRIP_MODE_ON</div>
+      <button id="btn-hub" class="sys-btn hub-btn">[ ABRIR HUB VITAL ]</button>
+    </header>
+    
+    <!-- Display de Mídia Visual -->
+    <div id="media-display" class="media-container hidden">
+      <div id="visual-glitch" class="glitch-effect hidden"></div>
+      <img id="scene-image" src="" alt="Cena Visual" class="hidden">
+    </div>
+
+    <main class="terminal-body">
+      <div id="story-text" class="typewriter-text"></div>
+      <div id="options-container" class="options-group"></div>
+    </main>
+
+    <footer class="terminal-footer">
+      <span>[NET_ID: CONECTADO]</span>
+      <div>
+        <button id="bgm-btn" class="sys-btn bgm-toggle">♫ BGM: OFF</button>
+        <button id="restart-btn" class="sys-btn">REINICIAR SISTEMA</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal do HUB de Inventário -->
+  <div id="hub-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">HUB DO JOGADOR</h2>
+      <hr class="modal-divider">
+      <h3 id="modal-hp">HP: 100 / 100</h3>
+      <div class="inventory-box">
+        <h4>MOCHILA:</h4>
+        <ul id="modal-inv-list"></ul>
+      </div>
+      <button id="close-hub" class="sys-btn" style="width: 100%; margin-top: 15px;">FECHAR HUB</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
