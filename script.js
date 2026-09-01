@@ -179,6 +179,142 @@ function makeChoice(option) {
 // ----------------------------------------------------
 // MOTOR DE ALUCINAÇÃO CONTÍNUA (CAUSA E EFEITO)
 // ----------------------------------------------------
+const MAX_BRANCH_CHOICES = 50;
+const branchState = { id: null, step: 0 };
+
+const branchData = {
+  rebeldes: {
+    nome: "Rota Fantasma",
+    objetivo: "levar o Núcleo Aurora para os Entregadores Fantasma",
+    cor: "#00f3ff",
+    cenarios: [
+      "Avenida Holográfica", "Túnel da Marginal Quântica", "Favela Neon 404",
+      "Viaduto das Antenas", "Ponte do Rio de Dados", "Mercado das Sombras"
+    ],
+    ameacas: [
+      "drones fiscais", "snipers da corporação", "minas de pulso",
+      "motoqueiros caçadores", "torres de varredura", "robôs cobradores"
+    ],
+    aliados: [
+      "DJ Cifra", "Mecânica Luva", "Ancião do Beco", "Piloto Fantasma",
+      "Rádio-Pombo", "Batedor de Grau"
+    ],
+    escolhasA: [
+      "Acelerar pelo corredor lateral usando fumaça de freio",
+      "Pedir cobertura de som pesado no paredão",
+      "Cortar caminho por vielas com luz ultravioleta",
+      "Ligar o turbo improvisado da moto",
+      "Lançar isca térmica para distrair a patrulha",
+      "Usar uma rampa de sucata para cruzar o bloqueio"
+    ],
+    escolhasB: [
+      "Negociar passagem com um contato do submundo",
+      "Invadir uma oficina e trocar de placa",
+      "Desligar os faróis e seguir no escuro",
+      "Entrar no fluxo de entregadores autônomos",
+      "Subornar um fiscal com peça rara",
+      "Esperar o comboio inimigo passar e seguir atrás"
+    ]
+  },
+  corporacao: {
+    nome: "Protocolo Vórtice",
+    objetivo: "entregar o Núcleo Aurora para a Diretoria Orbital",
+    cor: "#ff0055",
+    cenarios: [
+      "Setor Financeiro da Nova SP", "Anel Elevado da Corp Tower", "Docas Automatizadas",
+      "Heliponto de Vidro", "Distrito dos Servidores", "Zona Alfa de Segurança"
+    ],
+    ameacas: [
+      "rebeldes interceptadores", "vírus de tráfego", "drones sabotadores",
+      "bloqueios anti-corp", "caçadores de recompensa", "EMP pirata"
+    ],
+    aliados: [
+      "Analista Kira", "Capitão Ferro", "IA Vigia", "Agente Prisma",
+      "Unidade VTR-9", "Técnico Rho"
+    ],
+    escolhasA: [
+      "Abrir canal criptografado e pedir escolta blindada",
+      "Executar protocolo de alta velocidade no corredor azul",
+      "Ativar escudo eletromagnético por 30 segundos",
+      "Enviar drone batedor e seguir o mapa seguro",
+      "Chamar reforço de viaturas autônomas",
+      "Desviar por cima da linha ferroviária suspensa"
+    ],
+    escolhasB: [
+      "Silenciar transmissão e seguir em modo furtivo",
+      "Assumir risco e cortar caminho pelo distrito rebelde",
+      "Aceitar ajuda de um mercenário não rastreado",
+      "Desmontar um bloqueio com explosivo de contenção",
+      "Forjar um sinal de comboio oficial",
+      "Descer para o nível subterrâneo e pilotar manualmente"
+    ]
+  }
+};
+
+function createVisualFromScene(titulo, subtitulo, cor, progresso) {
+  const safeTitle = (titulo || "").replace(/</g, "").replace(/>/g, "");
+  const safeSubtitle = (subtitulo || "").replace(/</g, "").replace(/>/g, "");
+  const safeProgress = (progresso || "").replace(/</g, "").replace(/>/g, "");
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#080b14"/>
+        <stop offset="100%" stop-color="#121b2b"/>
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="675" fill="url(#bg)"/>
+    <rect x="42" y="42" width="1116" height="591" rx="20" fill="none" stroke="${cor}" stroke-width="4"/>
+    <text x="70" y="130" font-family="Courier New" font-size="54" fill="${cor}" font-weight="bold">${safeTitle}</text>
+    <text x="70" y="210" font-family="Courier New" font-size="32" fill="#e0e0e0">${safeSubtitle}</text>
+    <text x="70" y="595" font-family="Courier New" font-size="28" fill="${cor}">${safeProgress}</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function createBranchScene(branchId, step, playerActionText) {
+  const branch = branchData[branchId];
+  if (!branch) return null;
+
+  if (step > MAX_BRANCH_CHOICES) {
+    return {
+      text: `> MISSÃO CONCLUÍDA (${MAX_BRANCH_CHOICES}/${MAX_BRANCH_CHOICES})\n\nVocê finalizou o ramo [${branch.nome}] e conseguiu ${branch.objetivo}. A cidade inteira conhece sua rota.`,
+      visual_url: createVisualFromScene(branch.nome, "Final de rota alcançado", branch.cor, "Fim da campanha deste ramo"),
+      options: [
+        { text: "1. Reiniciar nova viagem psicodélica", keyword: "inicio_viagem", heal: 20 }
+      ]
+    };
+  }
+
+  const idx = (step - 1) % branch.cenarios.length;
+  const cenario = branch.cenarios[idx];
+  const ameaca = branch.ameacas[idx];
+  const aliado = branch.aliados[idx];
+  const escolhaA = branch.escolhasA[idx];
+  const escolhaB = branch.escolhasB[idx];
+  const progresso = `${step}/${MAX_BRANCH_CHOICES}`;
+  const checkpointText = step % 10 === 0 ? "\n\n[CHECKPOINT] Sua reputação subiu e você recupera fôlego." : "";
+
+  return {
+    text: `> [${branch.nome}] Etapa ${progresso}\nApós "${playerActionText}", você entra em ${cenario}. ${aliado} avisa no rádio sobre ${ameaca}. Seu objetivo segue o mesmo: ${branch.objetivo}.${checkpointText}`,
+    visual_url: createVisualFromScene(branch.nome, `${cenario} // ameaça: ${ameaca}`, branch.cor, `Progresso da rota: ${progresso}`),
+    options: [
+      {
+        text: `1. ${escolhaA}`,
+        keyword: `branch_step|${branchId}|${step + 1}`,
+        heal: step % 3 === 0 ? 6 : 2,
+        addItem: step % 15 === 0 ? `Patch de Reparo ${step / 15}` : undefined
+      },
+      {
+        text: `2. ${escolhaB}`,
+        keyword: `branch_step|${branchId}|${step + 1}`,
+        damage: step % 4 === 0 ? 9 : 4,
+        addItem: step % 12 === 0 ? `Credencial de Acesso ${step / 12}` : undefined
+      }
+    ]
+  };
+}
+
 function generateNextSceneWithAI(playerActionText, actionKeyword) {
   isTyping = true;
   mediaDisplay.classList.remove('hidden');
@@ -194,82 +330,51 @@ function generateNextSceneWithAI(playerActionText, actionKeyword) {
     // BANCO DE DADOS DE CONTINUIDADE (A IA RESPONDENDO AO CONTEXTO)
     let nextScene = {};
 
+    if (typeof actionKeyword === 'string' && actionKeyword.startsWith("branch_step|")) {
+      const [, branchId, nextStepRaw] = actionKeyword.split("|");
+      const nextStep = Number(nextStepRaw);
+      branchState.id = branchId;
+      branchState.step = Number.isNaN(nextStep) ? 1 : nextStep;
+      nextScene = createBranchScene(branchId, branchState.step, playerActionText);
+      renderAIScene(nextScene || {
+        text: "> O sinal da rota falhou e a simulação reiniciou.",
+        visual_url: createVisualFromScene("Falha de Rota", "Sinal perdido", "#ff0055", "Reiniciando"),
+        options: [{ text: "1. Recomeçar viagem", keyword: "inicio_viagem" }]
+      });
+      return;
+    }
+
     switch (actionKeyword) {
       
       case "inicio_viagem":
         nextScene = {
-          text: "> Tudo escurece. Você pisca e tá no espaço sideral, numa barraca de cachorro-quente iluminada por neon. O atendente é um Vira-Lata Caramelo de óculos escuros. Ele late e te estende um Dogão Cósmico brilhante.",
-          visual_url: "https://media.giphy.com/media/3o7aD2saal6qNmGUQQ/giphy.gif",
+          text: `> A distorção te joga em Nova SP 2099. Dois sinais aparecem no visor da sua moto:\n\n[RAMO A] Entregadores Fantasma pedem ajuda para derrubar a corporação.\n[RAMO B] Diretoria Orbital oferece grana alta por uma entrega sigilosa.\n\nEscolha um ramo para iniciar uma campanha com ${MAX_BRANCH_CHOICES} escolhas.`,
+          visual_url: createVisualFromScene("NOVA SP 2099", "Dois ramos surgem na rede", "#00ff66", `Cada ramo possui ${MAX_BRANCH_CHOICES} escolhas`),
           options: [
-            { text: "1. Comer o dogão cósmico", heal: 30, keyword: "comeu_dogao" },
-            { text: "2. Roubar o pote de purê radioativo e sair correndo", damage: 10, addItem: "Purê Radioativo", keyword: "roubou_pure" }
+            { text: "1. Seguir o sinal dos Entregadores Fantasma [RAMO A]", keyword: "ramo_rebeldes", addItem: "Ping Rebelde" },
+            { text: "2. Aceitar contrato da Diretoria Orbital [RAMO B]", keyword: "ramo_corporacao", addItem: "Token Corporativo" }
           ]
         };
         break;
 
-      case "roubou_pure":
-        nextScene = {
-          text: "> VOCÊ ROUBOU O PURÊ! O Vira-Lata Caramelo uiva e aperta um botão vermelho. Sirenes tocam. Três drones policiais em formato de viatura da ROTA aparecem no espaço atirando lasers azuis na sua direção!",
-          visual_url: "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif",
-          options: [
-            { text: "1. Jogar o purê radioativo nos drones", damage: 0, removeItem: "Purê Radioativo", keyword: "jogou_pure" },
-            { text: "2. Tentar despistar os drones correndo pelas estrelas", damage: 25, keyword: "fuga_espacial" }
-          ]
-        };
+      case "ramo_rebeldes":
+        branchState.id = "rebeldes";
+        branchState.step = 1;
+        nextScene = createBranchScene("rebeldes", 1, playerActionText);
         break;
 
-      case "jogou_pure":
-        nextScene = {
-          text: "> O purê radioativo acerta o para-brisa da viatura espacial! O drone policial entra em curto-circuito e explode numa nuvem de neon rosa. O impacto te joga para uma fenda no tempo e você cai de cara no asfalto de Nova SP.",
-          visual_url: "https://media.giphy.com/media/xT9IgzoVuwqr8MzptO/giphy.gif",
-          options: [
-            { text: "1. Levantar tonto e procurar sua moto", heal: 0, keyword: "procurar_moto" }
-          ]
-        };
-        break;
-
-      case "procurar_moto":
-      case "fuga_espacial":
-        nextScene = {
-          text: "> Você tá no meio de um viaduto flutuante. Do nada, uma figura amarela cortando giro numa moto de entregas cruza a pista. É uma esponja do mar ciborgue mandando um grau impossível! Ele grita: 'Sobe aí truta, a corporação tá vindo!'",
-          visual_url: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzAzZTk2YWQ3ZGFmZTc5YjUzNjVkY2Q4YzUzZjcxYTkxZjA1MWZiZSZlcD12MV9pbnRlcm5hbF9naWZzX3NlYXJjaCZjdD1n/H54T9B2xYvY9QoNpqI/giphy.gif",
-          options: [
-            { text: "1. Pular na garupa do Bob Esponja Motoqueiro", heal: 20, keyword: "garupa_esponja" },
-            { text: "2. Recusar a carona e puxar um fuzil do inventário", damage: 15, keyword: "tiroteio_viaduto" }
-          ]
-        };
-        break;
-
-      case "garupa_esponja":
-        nextScene = {
-          text: "> Você pula na garupa! A esponja solta a embreagem e a moto empina num grau a 200 km/h. Atrás de vocês, um carro-forte da corporação joga mísseis sônicos no viaduto, estourando o asfalto. Vocês precisam de um atalho!",
-          visual_url: "https://media.giphy.com/media/l1Aswx03WbLDf9kYw/giphy.gif",
-          options: [
-            { text: "1. Gritar pra ele entrar no Beco do Baile Funk", damage: 0, keyword: "entrou_baile" },
-            { text: "2. Hackear o outdoor pra ele virar uma rampa", damage: 10, keyword: "rampa_outdoor" }
-          ]
-        };
-        break;
-
-      case "entrou_baile":
-        nextScene = {
-          text: "> Vocês invadem o beco de moto! O lugar é um paredão de som gigante, um Baile Funk cibernético rolando pesado. Os graves batem tão forte que os mísseis do carro-forte explodem no ar. Um ciborgue gigante te chama pra roda.",
-          visual_url: "https://media.giphy.com/media/l41Yh18f5TbiWHE0o/giphy.gif",
-          options: [
-            { text: "1. Mandar o passinho do romano espacial", heal: 30, keyword: "passinho_romano" },
-            { text: "2. Ficar com vergonha e tentar fugir a pé", damage: 20, keyword: "fuga_pe" }
-          ]
-        };
+      case "ramo_corporacao":
+        branchState.id = "corporacao";
+        branchState.step = 1;
+        nextScene = createBranchScene("corporacao", 1, playerActionText);
         break;
 
       default:
-        // Caso Genérico (Se a IA se perder, ela joga um cenário aleatório novo)
         nextScene = {
-          text: "> O cenário ao seu redor buga completamente. Códigos verdes caem como chuva (Matrix style). Você vê o Éder gigante no céu rindo de você com a flanela na mão.",
-          visual_url: "https://media.giphy.com/media/V83xgGXXFDrJ6/giphy.gif",
+          text: "> O cenário bugou por um segundo, mas o sistema de navegação te devolve para a rota principal.",
+          visual_url: createVisualFromScene("Sistema Recalibrado", "Rota principal restaurada", "#00ff66", "Continue pilotando"),
           options: [
-            { text: "1. Tentar acordar dessa viagem louca", damage: 15, keyword: "inicio_viagem" },
-            { text: "2. Aceitar que agora você mora na simulação", heal: 20, keyword: "procurar_moto" }
+            { text: "1. Escolher novamente um ramo", keyword: "inicio_viagem" }
           ]
         };
         break;
@@ -318,6 +423,8 @@ function renderAIScene(aiData) {
 document.getElementById('restart-btn').addEventListener('click', () => {
   playerState = { hp: 100, maxHp: 100, inventory: ["Chave da Moto", "Mochila de Entrega"] };
   currentState = 'start';
+   branchState.id = null;
+   branchState.step = 0;
   mediaDisplay.classList.add('hidden');
   sceneImage.src = "";
   typeWriter(storyData.start.text);
